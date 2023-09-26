@@ -9,6 +9,7 @@ type: base
 build-base: core22
 grade: stable
 assumes: [snapd2.55.5]
+architectures: [arm64]
 
 parts:
   probert-deb:
@@ -80,11 +81,39 @@ parts:
     source-type: git
     organize:
       ubuntu-core: usr/share/plymouth/themes/ubuntu-core
+  enable-deb-src:
+    plugin: nil
+    override-pull: |
+      sed -i 's/^# \(deb-src\)/\1/g' /etc/apt/sources.list
+      apt update
+  glibc-widevine-deb:
+    after:
+      - enable-deb-src
+    plugin: nil
+    build-packages:
+      - apt-utils
+      - devscripts
+    override-pull: |
+      cd ..
+      apt source glibc
+      rm -rf src
+      mv glibc-2.35 src
+      cd src
+      patch -p1 < ${CRAFT_PROJECT_DIR}/glibc-patches/0001-sys-libs-glibc-add-support-for-SHT_RELR-sections.patch
+      patch -p1 < ${CRAFT_PROJECT_DIR}/glibc-patches/0002-tls-libwidevinecdm.so-since-4.10.2252.0-has-TLS-with.patch
+      "${CRAFT_PROJECT_DIR}/build-package.sh" pull
+    override-build: |
+      DEB_BUILD_OPTIONS=nocheck "${CRAFT_PROJECT_DIR}/build-package.sh" build
+    override-stage: |
+      "${CRAFT_PROJECT_DIR}/build-package.sh" stage
+    prime:
+      - -local-debs
   bootstrap:
     after:
       - probert-deb
       - consoleconf-deb
       - base
+      - glibc-widevine-deb
     plugin: make
     source: .
     build-packages:

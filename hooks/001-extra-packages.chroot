@@ -93,7 +93,7 @@ EOF
 
 # install some packages we need
 apt update
-apt dist-upgrade -y
+apt dist-upgrade -y --allow-downgrades
 
 PACKAGES=(
     apparmor
@@ -143,6 +143,7 @@ PACKAGES=(
 # Locally built packages
 PACKAGES+=(
     console-conf
+    libc6
     probert-common
     probert-network
     subiquitycore
